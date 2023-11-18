@@ -165,10 +165,10 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
    write.csv(peaks, paste0(mzmldir,"/",strsplit(mzMLfile[1], split = lcmspattern)[[1]][1], "_",nrow(peaks), "_peaks_with_MS2.csv"),row.names = FALSE )
   }
     ```
-  - SN: signal to noise ratio, user can decrease this value to improve sensitivity
-  - noise: intensity threshold, peaks with intensity lower than this threshold will be removed
-  - rt_min: retention time in seconds, peaks with rt lower than this threshold will be removed
-  - rt_max: retention time in seconds, peaks with rt higher than this threshold will be removed
+  - SN: signal to noise ratio, user can decrease this value to improve sensitivity. Default: 20
+  - noise: intensity threshold, peaks with intensity lower than this threshold will be removed, default: 2000
+  - rt_min: retention time in seconds, peaks with rt lower than this threshold will be removed, default: 300
+  - rt_max: retention time in seconds, peaks with rt higher than this threshold will be removed, default: 3000
   
 * determine chlorinated compounds
   ````
@@ -239,6 +239,11 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
   write.csv(aligned_tb, paste0(mzmldir, "/",nrow(aligned_tb),"_alignment.csv"), row.names = FALSE)
 
     ```
+  - file_dir: the path of the folder containing all the feature tables
+  - filePattern: the pattern of the feature table name, e.g. "_cl_high_quality.csv"
+  - align_mz_tol: m/z tolerance for alignment, default 0.01 Da.
+  - align_rt_tol: retention time tolerance for alignment, default 20 seconds.
+
 ### Part 3 Missing value imputation 
 *
   ```angular2html
@@ -247,13 +252,18 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
   # Output
   write.csv(filled_tb, paste0(mzmldir, "/gap_filled.csv"), row.names = FALSE )
     ```
+    - file_dir: the path of the folder containing all the mzML files
+    - mzmlfiles_pattern: the pattern of the mzML file name, e.g. ".mzML" or ".mzXML"
+    - aligned_tb: aligned feature table.
+    - int_threshold: intensity threshold for missing value imputation, default 0.
+  
 ### Part 4 Annotation
   * Specify the path feature table that needs to annotate. <br>
     Users need to manually change the path within read.csv() function below
     ```angular2html
     table_need_annotation <- read.csv("C:/Users/User/Desktop/testmzML/TW APM noAscorbic_159_cl_high_quality.csv")
     ```
-
+    
   * Spectral database search
     ```angular2html
     # Load database
