@@ -140,7 +140,7 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
     
 * Specify whether detect in-source fragment or not.
     ```angular2html
-  isfrag <- TRUE # Boolean: TRUE or FALSE
+  isfrag <- FALSE # Boolean: TRUE or FALSE
     ```
 * Specify the path of the MS/MS spectra database, if users want to conduct database searching for compound annotation
    ```
@@ -153,16 +153,21 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
 
 
 ### Part 1 Extraciton of chlorinated compounds
+   
 
-
-* load customized feature table or extract all chemical features
-
+* load customized feature table or extract all chemical features <br>
+  ```angular2html
+  i <- 1 # i is the index of the sample 
+  ```
+  Please note that the following steps are designed for a single sample, users need to loop through all the samples. 
+  Please refer to the [demo script](https://github.com/TingtingZhao81/ChloroDBPFinder_support/tree/main/demo_script) for details.
+  
   ```angular2html
   if(use_customized_table){
     peaks <- read.csv(customized_table)
   }else{
-   peaks <- extractPeak(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[1], SN= 20, noise =2000, rt_min =300, rt_max =3000 )
-   write.csv(peaks, paste0(mzmldir,"/",strsplit(mzMLfile[1], split = lcmspattern)[[1]][1], "_",nrow(peaks), "_peaks_with_MS2.csv"),row.names = FALSE )
+   peaks <- extractPeak(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[i], SN= 20, noise =2000, rt_min =300, rt_max =3000 )
+   write.csv(peaks, paste0(mzmldir,"/",strsplit(mzMLfile[i], split = lcmspattern)[[1]][1], "_",nrow(peaks), "_peaks_with_MS2.csv"),row.names = FALSE )
   }
     ```
   - SN: signal to noise ratio, user can decrease this value to improve sensitivity. Default: 20
@@ -175,8 +180,8 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
   binary_rf_model <- readRDS(binary_model_file) # load binary classifier
   multi_rf_model <- readRDS(multi_model_file)   # load multiclass classifier
   xcmsrawlcms <- eicRawlcms(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[i]) # pre-process the raw lcms for EIC extracion
-  cl_tb <- selectCl(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[1], original_ft = peaks,
-                     binary_model = binary_rf_model, multi_model = multi_rf_model, ms1_spectra_rt_tol =20, ms1_spectra_mz_tol = 25, 
+  cl_tb <- selectCl(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[i], original_ft = peaks,
+                     binary_model = binary_rf_model, multi_model = multi_rf_model, ms1_spetra_rt_tol =20, ms1_spectra_mass_tol = 25, 
                      iso_mass_diff_1 = 1.003355, iso_mass_diff_2 = 1.99705, iso_mass_diff_3 = 3, iso_mass_diff_4 = 3.994)
   ````
   
@@ -189,15 +194,15 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
      customFT$Adduct <- 0
      customFT$isotope <- 0
      rownames(customFT) <- peaks$featureID
-     if(grepl("mzXML", mzMLfile[1])){filename <- strsplit( mzMLfile[1], split=".mzXML")[[1]][1]}
-  else{filename <- strsplit( mzMLfile[1], split=".mzML")[[1]][1]}
+     if(grepl("mzXML", mzMLfile[i])){filename <- strsplit( mzMLfile[i], split=".mzXML")[[1]][1]}
+  else{filename <- strsplit( mzMLfile[i], split=".mzML")[[1]][1]}
      ISFdirectory_name <- paste0(mzmldir,"/inSourceFrag_", filename)
      dir.create(ISFdirectory_name)
-     file.copy(from = paste0(mzmldir, "/", mzMLfile[1]), to = ISFdirectory_name)
+     file.copy(from = paste0(mzmldir, "/", mzMLfile[i]), to = ISFdirectory_name)
      featureTable <- ISFrag::ms2.assignment(MS2directory = ISFdirectory_name, customFT = customFT)
      featureTable <- featureTable[,-1]
      level3 <- ISFrag::find.level3(MS1directory = ISFdirectory_name,
-                                   MS1.files = mzMLfile[1],
+                                   MS1.files = mzMLfile[i],
                                    featureTable = featureTable,
                                    type = "single")
      level2 <- ISFrag::find.level2(ISFtable = level3)
@@ -209,13 +214,12 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
      col_index <- which( colnames(isf_featuerTable) %in% c(colnames(peaks), "cl" ,"ISF_level"))
      result <- isf_featuerTable[,col_index]
      result <- result[result$cl != 0,]
-     file.remove(paste0(ISFdirectory_name, "/",mzMLfile[1]))
+     file.remove(paste0(ISFdirectory_name, "/",mzMLfile[i]))
      write.csv(result, paste0(ISFdirectory_name,"/isf_results.csv"), row.names = FALSE)
    }else{result <- 0}
 * Identify salt adducts, isotopes
 
   ```
-  xcmsrawlcms <- eicRawlcms(mzMLdirectory = mzmldir, mzMLfile = mzMLfile[1]) # pre-process the raw lcms for EIC extracion
   cl_tb_POS <- cl_tb[cl_tb$cl !=0,]
   cl_tb_cleaned <- ChloroDBPFinder::cleanFeature(peaks = peaks, chlorine_tb = cl_tb_POS,
                                  rawlcms = xcmsrawlcms, rawfile_dir = mzmldir, lcmsfile = mzMLfile[i],
@@ -223,11 +227,12 @@ A demo script can be downloaded from [demo script website](https://github.com/Ti
                                  ISFtable = result,
                                  samNum = i)
   ```
+  
 * Output the table of chlorine-containing features
   ```
-  write.csv(cl_tb_cleaned, paste0(mzmldir,"/",strsplit(mzMLfile[1], split = lcmspattern)[[1]][1],"_",nrow(cl_tb_cleaned), "_cl.csv"),row.names = FALSE )
+  write.csv(cl_tb_cleaned, paste0(mzmldir,"/",strsplit(mzMLfile[i], split = lcmspattern)[[1]][1],"_",nrow(cl_tb_cleaned), "_cl.csv"),row.names = FALSE )
   high_quality_cl_tb <- cl_tb_cleaned[cl_tb_cleaned$Adduct == 0 & cl_tb_cleaned$isotope == 0 & cl_tb_cleaned$ISF_level == 0,]
-  write.csv(high_quality_cl_tb, paste0(mzmldir,"/",strsplit(mzMLfile[1], split = lcmspattern)[[1]][1], "_", nrow(high_quality_cl_tb), "_cl_high_quality.csv"), row.names = FALSE)
+  write.csv(high_quality_cl_tb, paste0(mzmldir,"/",strsplit(mzMLfile[i], split = lcmspattern)[[1]][1], "_", nrow(high_quality_cl_tb), "_cl_high_quality.csv"), row.names = FALSE)
   ```
   
 ### Part 2 Alignment across samples
